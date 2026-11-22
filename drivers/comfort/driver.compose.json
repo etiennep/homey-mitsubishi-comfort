@@ -1,0 +1,97 @@
+{
+  "name": { "en": "Mitsubishi mini-split" },
+  "class": "thermostat",
+  "capabilities": [
+    "onoff",
+    "thermostat_mode",
+    "kumo_mode",
+    "target_temperature",
+    "measure_temperature",
+    "kumo_fan_speed",
+    "kumo_vane",
+    "target_temperature.heat",
+    "target_temperature.cool",
+    "alarm_generic",
+    "kumo_rssi"
+  ],
+  "capabilitiesOptions": {
+    "target_temperature": { "min": 10, "max": 31, "step": 0.5 },
+    "target_temperature.heat": {
+      "title": { "en": "Heat to (auto mode)" },
+      "min": 10, "max": 31, "step": 0.5
+    },
+    "target_temperature.cool": {
+      "title": { "en": "Cool to (auto mode)" },
+      "min": 10, "max": 31, "step": 0.5
+    },
+    "alarm_generic": {
+      "title": { "en": "Filter needs cleaning" }
+    }
+  },
+  "platforms": ["local"],
+  "connectivity": ["lan"],
+  "images": {
+    "small": "{{driverAssetsPath}}/images/small.png",
+    "large": "{{driverAssetsPath}}/images/large.png",
+    "xlarge": "{{driverAssetsPath}}/images/xlarge.png"
+  },
+  "pair": [
+    { "id": "login" }
+  ],
+  "repair": [
+    { "id": "login" }
+  ],
+  "settings": [
+    {
+      "type": "group",
+      "label": { "en": "Connection" },
+      "children": [
+        {
+          "id": "address",
+          "type": "text",
+          "label": { "en": "Adapter IP address" },
+          "value": "",
+          "hint": { "en": "Local mode only: LAN IP of the Kumo/Comfort Wi-Fi adapter. Leave empty for cloud-connected devices." }
+        },
+        {
+          "id": "poll_interval",
+          "type": "number",
+          "label": { "en": "Poll interval" },
+          "value": 60,
+          "min": 15,
+          "hint": { "en": "Cloud-connected devices poll no faster than every 60 seconds to stay under Mitsubishi's rate limits." },
+          "max": 600,
+          "units": { "en": "seconds" }
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "label": { "en": "Temperature" },
+      "children": [
+        {
+          "id": "temp_units",
+          "type": "dropdown",
+          "label": { "en": "Setpoint rounding" },
+          "value": "fahrenheit",
+          "hint": { "en": "Fahrenheit uses the Comfort app's own whole-degree °F ↔ °C table, so 70 °F in Homey is 70 °F in the Comfort app. Auto follows Homey's unit setting. Also applies to the number fields in this app's Flow cards." },
+          "values": [
+            { "id": "auto", "label": { "en": "Auto (follow Homey)" } },
+            { "id": "fahrenheit", "label": { "en": "Fahrenheit (Comfort app steps)" } },
+            { "id": "celsius", "label": { "en": "Celsius (0.5° steps)" } }
+          ]
+        }
+      ]
+    },
+    {
+      "type": "group",
+      "label": { "en": "Unit info" },
+      "children": [
+        { "id": "connection", "type": "label", "label": { "en": "Connection" }, "value": "" },
+        { "id": "serial", "type": "label", "label": { "en": "Serial" }, "value": "" },
+        { "id": "mac", "type": "label", "label": { "en": "MAC" }, "value": "" },
+        { "id": "firmware", "type": "label", "label": { "en": "Adapter firmware" }, "value": "" }
+      ]
+    }
+  ]
+}

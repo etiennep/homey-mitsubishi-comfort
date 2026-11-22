@@ -1,0 +1,11 @@
+{
+  "type": "number",
+  "title": { "en": "Wi-Fi signal" },
+  "getable": true,
+  "setable": false,
+  "units": { "en": "dBm" },
+  "decimals": 0,
+  "insights": true,
+  "uiComponent": "sensor",
+  "icon": "/assets/wifi.svg"
+}

@@ -1,0 +1,17 @@
+{
+  "type": "enum",
+  "title": { "en": "Vane direction" },
+  "getable": true,
+  "setable": true,
+  "uiComponent": "picker",
+  "insights": false,
+  "values": [
+    { "id": "auto",          "title": { "en": "Auto" } },
+    { "id": "swing",         "title": { "en": "Swing" } },
+    { "id": "horizontal",    "title": { "en": "Horizontal" } },
+    { "id": "midhorizontal", "title": { "en": "Mid-horizontal" } },
+    { "id": "midpoint",      "title": { "en": "Middle" } },
+    { "id": "midvertical",   "title": { "en": "Mid-vertical" } },
+    { "id": "vertical",      "title": { "en": "Vertical" } }
+  ]
+}

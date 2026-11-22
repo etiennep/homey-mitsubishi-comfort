@@ -1,0 +1,13 @@
+{
+  "name": "com.github.etiennep.mitsubishicomfort",
+  "version": "0.1.0",
+  "description": "Homey app for Mitsubishi Comfort (formerly Kumo Cloud) mini-splits",
+  "main": "app.js",
+  "private": true,
+  "license": "MIT",
+  "repository": "github:etiennep/homey-mitsubishi-comfort",
+  "scripts": {
+    "test": "node tools/selftest.js"
+  },
+  "engines": { "node": ">=16" }
+}

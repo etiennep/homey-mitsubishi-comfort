@@ -1,0 +1,16 @@
+{
+  "type": "enum",
+  "title": { "en": "Mode" },
+  "getable": true,
+  "setable": true,
+  "uiComponent": "picker",
+  "insights": false,
+  "values": [
+    { "id": "off",  "title": { "en": "Off" } },
+    { "id": "heat", "title": { "en": "Heat" } },
+    { "id": "cool", "title": { "en": "Cool" } },
+    { "id": "auto", "title": { "en": "Heat/Cool (auto)" } },
+    { "id": "dry",  "title": { "en": "Dry" } },
+    { "id": "vent", "title": { "en": "Fan only" } }
+  ]
+}

@@ -1,0 +1,195 @@
+<style>
+  .kumo-section { margin-bottom: 1.2em; }
+  .kumo-unit { border: 1px solid #ddd; border-radius: 8px; padding: 0.8em; margin-bottom: 0.8em; }
+  .kumo-unit h3 { margin: 0 0 0.3em 0; }
+  .kumo-muted { color: #888; font-size: 0.85em; }
+  .kumo-ok { color: #2a8a2a; }
+  .kumo-err { color: #c8102e; white-space: pre-wrap; }
+  .kumo-row { display: flex; gap: 0.5em; margin-top: 0.5em; }
+  .kumo-row > * { flex: 1; }
+  .kumo-tabs { display: flex; gap: 1em; margin-bottom: 1em; }
+  .kumo-tabs a { cursor: pointer; text-decoration: underline; }
+  .kumo-tabs a.active { font-weight: bold; text-decoration: none; }
+  .hidden { display: none; }
+</style>
+
+<header class="homey-header">
+  <h1 class="homey-title" id="kumo-title">Mitsubishi Comfort</h1>
+  <p class="homey-subtitle">Log in with your Mitsubishi Comfort app account to find your units.</p>
+</header>
+
+<div class="kumo-tabs">
+  <a id="tab-cloud" class="active">Comfort app login</a>
+  <a id="tab-manual">Enter keys manually</a>
+</div>
+
+<!-- Cloud login -->
+<form id="form-cloud" class="homey-form kumo-section" onsubmit="return false;">
+  <div class="homey-form-group">
+    <label class="homey-form-label" for="username">Email</label>
+    <input class="homey-form-input" id="username" type="email" autocomplete="username" />
+  </div>
+  <div class="homey-form-group">
+    <label class="homey-form-label" for="password">Password</label>
+    <input class="homey-form-input" id="password" type="password" autocomplete="current-password" />
+  </div>
+  <button class="homey-button-primary-full" id="btn-login">Log in and find units</button>
+</form>
+
+<!-- Manual keys (e.g. copied from a hass-kumo / pykumo cache) -->
+<form id="form-manual" class="homey-form kumo-section hidden" onsubmit="return false;">
+  <div class="homey-form-group">
+    <label class="homey-form-label" for="m-serial">Unit serial</label>
+    <input class="homey-form-input" id="m-serial" type="text" />
+  </div>
+  <div class="homey-form-group">
+    <label class="homey-form-label" for="m-password">Password (base64)</label>
+    <input class="homey-form-input" id="m-password" type="text" />
+  </div>
+  <div class="homey-form-group">
+    <label class="homey-form-label" for="m-crypto">Crypto serial (hex)</label>
+    <input class="homey-form-input" id="m-crypto" type="text" />
+  </div>
+  <div class="homey-form-group">
+    <label class="homey-form-label" for="m-ip">Adapter IP address</label>
+    <input class="homey-form-input" id="m-ip" type="text" placeholder="192.168.x.x" />
+  </div>
+  <div class="homey-form-group">
+    <label class="homey-form-label" for="m-name">Name</label>
+    <input class="homey-form-input" id="m-name" type="text" value="Mini-split" />
+  </div>
+  <button class="homey-button-primary-full" id="btn-manual">Test and add</button>
+  <p id="m-msg"></p>
+</form>
+
+<div id="units" class="kumo-section"></div>
+<p id="msg"></p>
+
+<script type="text/javascript">
+(function () {
+  var mode = 'pair';
+  var repairSerial = null;
+  var repairAddress = '';
+
+  function $(id) { return document.getElementById(id); }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function errText(err) { return (err && (err.message || err)) || 'Unknown error'; }
+  function setMsg(el, text, ok) {
+    el.className = ok ? 'kumo-ok' : (text ? 'kumo-err' : '');
+    el.textContent = text || '';
+  }
+
+  $('tab-cloud').onclick = function () {
+    $('tab-cloud').className = 'active'; $('tab-manual').className = '';
+    $('form-cloud').classList.remove('hidden'); $('form-manual').classList.add('hidden');
+  };
+  $('tab-manual').onclick = function () {
+    $('tab-manual').className = 'active'; $('tab-cloud').className = '';
+    $('form-manual').classList.remove('hidden'); $('form-cloud').classList.add('hidden');
+  };
+
+  function finishWith(args, btn, msgEl) {
+    btn.disabled = true;
+    setMsg(msgEl, 'Contacting the unit…', true);
+    Homey.emit('test', args).then(function (s) {
+      setMsg(msgEl, 'Connected: mode ' + s.mode + ', room ' + s.roomTemp + ' °C', true);
+      if (mode === 'repair') {
+        return Homey.emit('repair', args).then(function () { Homey.done(); });
+      }
+      return Homey.emit('build', args).then(function (device) {
+        return Homey.createDevice(device);
+      }).then(function () { Homey.done(); });
+    }).catch(function (err) {
+      btn.disabled = false;
+      setMsg(msgEl, errText(err), false);
+    });
+  }
+
+  function renderUnits(units) {
+    var html = '';
+    if (!units.length) html = '<p class="kumo-err">No indoor units found on this account.</p>';
+    units.forEach(function (u, i) {
+      if (mode === 'repair' && repairSerial && u.serial !== repairSerial) return;
+      var addLabel = mode === 'repair' ? 'Use' : 'Add';
+      html += '<div class="kumo-unit">' +
+        '<h3>' + esc(u.label) + '</h3>' +
+        '<div class="kumo-muted">Serial ' + esc(u.serial) + (u.mac ? ' · MAC ' + esc(u.mac) : '') + '</div>' +
+        '<div class="kumo-row"><button class="homey-button-primary" id="cloud-' + i + '">' + addLabel + ' via Mitsubishi cloud</button></div>' +
+        '<p class="kumo-muted">Works with any account. Needs internet; Homey stores your Comfort login to stay signed in.</p>' +
+        (u.complete
+          ? '<div class="kumo-muted" style="margin-top:0.6em">Local key available — or connect directly over your LAN:</div>' +
+            '<div class="kumo-row">' +
+              '<input class="homey-form-input" id="ip-' + i + '" placeholder="Adapter IP, e.g. 192.168.1.50" value="' + esc(u.address || repairAddress) + '"/>' +
+              '<button class="homey-button-secondary" id="add-' + i + '">' + addLabel + ' locally</button>' +
+            '</div>'
+          : '<p class="kumo-muted">Mitsubishi no longer returns the local key for this unit, so only cloud control is available (unless you have a saved key — see "Enter keys manually").</p>') +
+        '<p id="umsg-' + i + '"></p>' +
+        '</div>';
+    });
+    $('units').innerHTML = html;
+    units.forEach(function (u, i) {
+      var cbtn = $('cloud-' + i);
+      if (cbtn) {
+        cbtn.onclick = function () {
+          finishWith({ serial: u.serial, cloud: true, name: u.label }, cbtn, $('umsg-' + i));
+        };
+      }
+      var btn = $('add-' + i);
+      if (!btn) return;
+      btn.onclick = function () {
+        var ip = $('ip-' + i).value.trim();
+        if (!ip) { setMsg($('umsg-' + i), 'Enter the adapter IP address', false); return; }
+        finishWith({ serial: u.serial, address: ip, name: u.label }, btn, $('umsg-' + i));
+      };
+    });
+  }
+
+  $('btn-login').onclick = function () {
+    var btn = $('btn-login');
+    var username = $('username').value.trim();
+    var password = $('password').value;
+    if (!username || !password) { setMsg($('msg'), 'Enter your Comfort app email and password', false); return; }
+    btn.disabled = true;
+    setMsg($('msg'), 'Logging in to Mitsubishi Comfort…', true);
+    Homey.emit('login', { username: username, password: password }).then(function (units) {
+      btn.disabled = false;
+      setMsg($('msg'), units.length + ' unit(s) found.', true);
+      renderUnits(units);
+    }).catch(function (err) {
+      btn.disabled = false;
+      setMsg($('msg'), errText(err), false);
+    });
+  };
+
+  $('btn-manual').onclick = function () {
+    var args = {
+      serial: $('m-serial').value.trim(),
+      password: $('m-password').value.trim(),
+      cryptoSerial: $('m-crypto').value.trim(),
+      address: $('m-ip').value.trim(),
+      name: $('m-name').value.trim()
+    };
+    if (mode === 'repair' && !args.serial) args.serial = repairSerial;
+    if (!args.serial || !args.password || !args.cryptoSerial || !args.address) {
+      setMsg($('m-msg'), 'All fields are required', false); return;
+    }
+    finishWith(args, $('btn-manual'), $('m-msg'));
+  };
+
+  Homey.emit('getMode').then(function (info) {
+    mode = info.mode;
+    if (mode === 'repair') {
+      repairSerial = info.serial;
+      repairAddress = info.address || '';
+      $('kumo-title').textContent = 'Repair: refresh key or IP';
+      $('m-serial').value = repairSerial;
+      $('m-ip').value = repairAddress;
+      $('m-name').parentNode.classList.add('hidden');
+    }
+  });
+})();
+</script>

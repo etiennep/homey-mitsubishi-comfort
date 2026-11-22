@@ -1,0 +1,19 @@
+{
+  "id": "com.github.etiennep.mitsubishicomfort",
+  "version": "0.1.0",
+  "compatibility": ">=12.0.0",
+  "sdk": 3,
+  "platforms": ["local"],
+  "name": { "en": "Mitsubishi Comfort" },
+  "description": { "en": "Control Mitsubishi mini-splits with a Comfort (formerly Kumo Cloud) Wi-Fi adapter, via the Mitsubishi Comfort cloud or a local key." },
+  "category": ["climate"],
+  "permissions": [],
+  "brandColor": "#C8102E",
+  "images": {
+    "small": "/assets/images/small.png",
+    "large": "/assets/images/large.png",
+    "xlarge": "/assets/images/xlarge.png"
+  },
+  "author": { "name": "Etienne" },
+  "connectivity": ["lan", "cloud"]
+}

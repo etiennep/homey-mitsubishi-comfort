@@ -1,0 +1,127 @@
+{
+  "triggers": [
+    {
+      "id": "kumo_mode_changed",
+      "title": { "en": "Mode changed" },
+      "tokens": [
+        { "name": "mode", "type": "string", "title": { "en": "Mode" }, "example": "heat" }
+      ]
+    },
+    {
+      "id": "kumo_fan_speed_changed",
+      "title": { "en": "Fan speed changed" },
+      "tokens": [
+        { "name": "fan_speed", "type": "string", "title": { "en": "Fan speed" }, "example": "quiet" }
+      ]
+    }
+  ],
+  "conditions": [
+    {
+      "id": "kumo_mode_is",
+      "title": { "en": "Mode !{{is|isn't}}" },
+      "titleFormatted": { "en": "Mode !{{is|isn't}} [[mode]]" },
+      "args": [
+        {
+          "name": "mode", "type": "dropdown",
+          "values": [
+            { "id": "off", "label": { "en": "Off" } },
+            { "id": "heat", "label": { "en": "Heat" } },
+            { "id": "cool", "label": { "en": "Cool" } },
+            { "id": "auto", "label": { "en": "Heat/Cool (auto)" } },
+            { "id": "dry", "label": { "en": "Dry" } },
+            { "id": "vent", "label": { "en": "Fan only" } }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "kumo_is_running",
+      "title": { "en": "!{{Is|Isn't}} heating or cooling" },
+      "hint": { "en": "True when the mode is heat, cool, auto or dry." }
+    }
+  ],
+  "actions": [
+    {
+      "id": "set_kumo_mode",
+      "title": { "en": "Set mode" },
+      "titleFormatted": { "en": "Set mode to [[mode]]" },
+      "args": [
+        {
+          "name": "mode", "type": "dropdown",
+          "values": [
+            { "id": "off", "label": { "en": "Off" } },
+            { "id": "heat", "label": { "en": "Heat" } },
+            { "id": "cool", "label": { "en": "Cool" } },
+            { "id": "auto", "label": { "en": "Heat/Cool (auto)" } },
+            { "id": "dry", "label": { "en": "Dry" } },
+            { "id": "vent", "label": { "en": "Fan only" } }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "set_fan_speed",
+      "title": { "en": "Set fan speed" },
+      "titleFormatted": { "en": "Set fan speed to [[fan_speed]]" },
+      "args": [
+        {
+          "name": "fan_speed", "type": "dropdown",
+          "values": [
+            { "id": "auto", "label": { "en": "Auto" } },
+            { "id": "superQuiet", "label": { "en": "Super quiet" } },
+            { "id": "quiet", "label": { "en": "Quiet" } },
+            { "id": "low", "label": { "en": "Low" } },
+            { "id": "powerful", "label": { "en": "Powerful" } },
+            { "id": "superPowerful", "label": { "en": "Super powerful" } }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "set_vane",
+      "title": { "en": "Set vane direction" },
+      "titleFormatted": { "en": "Set vane direction to [[vane]]" },
+      "args": [
+        {
+          "name": "vane", "type": "dropdown",
+          "values": [
+            { "id": "auto", "label": { "en": "Auto" } },
+            { "id": "swing", "label": { "en": "Swing" } },
+            { "id": "horizontal", "label": { "en": "Horizontal" } },
+            { "id": "midhorizontal", "label": { "en": "Mid-horizontal" } },
+            { "id": "midpoint", "label": { "en": "Middle" } },
+            { "id": "midvertical", "label": { "en": "Mid-vertical" } },
+            { "id": "vertical", "label": { "en": "Vertical" } }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "set_mode_and_temperature",
+      "title": { "en": "Set mode and temperature" },
+      "titleFormatted": { "en": "Set to [[mode]] at [[temperature]]°" },
+      "hint": { "en": "Temperature is in °F or °C according to the device's Setpoint rounding setting (Auto follows Homey)." },
+      "args": [
+        {
+          "name": "mode", "type": "dropdown",
+          "values": [
+            { "id": "heat", "label": { "en": "Heat" } },
+            { "id": "cool", "label": { "en": "Cool" } },
+            { "id": "dry", "label": { "en": "Dry" } }
+          ]
+        },
+        { "name": "temperature", "type": "number", "min": 10, "max": 90, "step": 0.5, "placeholder": { "en": "70" } }
+      ]
+    },
+    {
+      "id": "set_auto_setpoints",
+      "title": { "en": "Set heat/cool (auto) setpoints" },
+      "titleFormatted": { "en": "Heat to [[heat]]° and cool to [[cool]]°" },
+      "hint": { "en": "Temperatures are in °F or °C according to the device's Setpoint rounding setting (Auto follows Homey)." },
+      "args": [
+        { "name": "heat", "type": "number", "min": 10, "max": 90, "step": 0.5, "placeholder": { "en": "68" } },
+        { "name": "cool", "type": "number", "min": 10, "max": 90, "step": 0.5, "placeholder": { "en": "76" } }
+      ]
+    }
+  ]
+}
