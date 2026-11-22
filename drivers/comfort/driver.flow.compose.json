@@ -1,14 +1,14 @@
 {
   "triggers": [
     {
-      "id": "kumo_mode_changed",
+      "id": "mode_changed",
       "title": { "en": "Mode changed" },
       "tokens": [
         { "name": "mode", "type": "string", "title": { "en": "Mode" }, "example": "heat" }
       ]
     },
     {
-      "id": "kumo_fan_speed_changed",
+      "id": "fan_speed_changed",
       "title": { "en": "Fan speed changed" },
       "tokens": [
         { "name": "fan_speed", "type": "string", "title": { "en": "Fan speed" }, "example": "quiet" }
@@ -17,7 +17,7 @@
   ],
   "conditions": [
     {
-      "id": "kumo_mode_is",
+      "id": "mode_is",
       "title": { "en": "Mode !{{is|isn't}}" },
       "titleFormatted": { "en": "Mode !{{is|isn't}} [[mode]]" },
       "args": [
@@ -27,7 +27,7 @@
             { "id": "off", "label": { "en": "Off" } },
             { "id": "heat", "label": { "en": "Heat" } },
             { "id": "cool", "label": { "en": "Cool" } },
-            { "id": "auto", "label": { "en": "Heat/Cool (auto)" } },
+            { "id": "auto", "label": { "en": "Auto heat/cool" } },
             { "id": "dry", "label": { "en": "Dry" } },
             { "id": "vent", "label": { "en": "Fan only" } }
           ]
@@ -35,14 +35,14 @@
       ]
     },
     {
-      "id": "kumo_is_running",
+      "id": "is_running",
       "title": { "en": "!{{Is|Isn't}} heating or cooling" },
       "hint": { "en": "True when the mode is heat, cool, auto or dry." }
     }
   ],
   "actions": [
     {
-      "id": "set_kumo_mode",
+      "id": "set_mode",
       "title": { "en": "Set mode" },
       "titleFormatted": { "en": "Set mode to [[mode]]" },
       "args": [
@@ -52,7 +52,7 @@
             { "id": "off", "label": { "en": "Off" } },
             { "id": "heat", "label": { "en": "Heat" } },
             { "id": "cool", "label": { "en": "Cool" } },
-            { "id": "auto", "label": { "en": "Heat/Cool (auto)" } },
+            { "id": "auto", "label": { "en": "Auto heat/cool" } },
             { "id": "dry", "label": { "en": "Dry" } },
             { "id": "vent", "label": { "en": "Fan only" } }
           ]
@@ -115,7 +115,7 @@
     },
     {
       "id": "set_auto_setpoints",
-      "title": { "en": "Set heat/cool (auto) setpoints" },
+      "title": { "en": "Set auto heat and cool setpoints" },
       "titleFormatted": { "en": "Heat to [[heat]]° and cool to [[cool]]°" },
       "hint": { "en": "Temperatures are in °F or °C according to the device's Setpoint rounding setting (Auto follows Homey)." },
       "args": [

@@ -8,6 +8,7 @@ const MAX_FAILURES_BEFORE_UNAVAILABLE = 3;
 const POST_COMMAND_POLL_MS = 2500;
 const POST_COMMAND_POLL_CLOUD_MS = 8000;
 const MIN_CLOUD_POLL_S = 60;
+const STREAM_SAFETY_POLL_MS = 5 * 60 * 1000; // full poll at least this often while live updates are flowing
 
 const round = (x, d = 2) => Math.round(x * 10 ** d) / 10 ** d;
 
@@ -19,10 +20,10 @@ class ComfortDevice extends Homey.Device {
 
     this.registerCapabilityListener('onoff', (v) => this.applyOnOff(v));
     this.registerCapabilityListener('thermostat_mode', (v) => this.applyMode(v));
-    this.registerCapabilityListener('kumo_mode', (v) => this.applyMode(v));
+    this.registerCapabilityListener('comfort_mode', (v) => this.applyMode(v));
     this.registerCapabilityListener('target_temperature', (v) => this._setTargetFromHomey(v));
-    this.registerCapabilityListener('kumo_fan_speed', (v) => this.applyFanSpeed(v));
-    if (this.hasCapability('kumo_vane')) this.registerCapabilityListener('kumo_vane', (v) => this.applyVane(v));
+    this.registerCapabilityListener('comfort_fan_speed', (v) => this.applyFanSpeed(v));
+    if (this.hasCapability('comfort_vane')) this.registerCapabilityListener('comfort_vane', (v) => this.applyVane(v));
     if (this.hasCapability('target_temperature.heat')) {
       this.registerCapabilityListener('target_temperature.heat', (v) => this._setAutoFromHomey({ heat: v }));
       this.registerCapabilityListener('target_temperature.cool', (v) => this._setAutoFromHomey({ cool: v }));
@@ -39,10 +40,12 @@ class ComfortDevice extends Homey.Device {
 
   onDeleted() {
     this._stopPolling();
+    this._detachStream();
   }
 
   onUninit() {
     this._stopPolling();
+    this._detachStream();
   }
 
   async onSettings({ newSettings, changedKeys }) {
@@ -88,14 +91,40 @@ class ComfortDevice extends Homey.Device {
     if (this._isCloud()) {
       const cloud = this.homey.app.getCloud(this.getStoreValue('username'), this.getStoreValue('password'));
       this.unit = new KumoCloudUnit({ cloud, serial: this.getData().id, log: (...a) => this.log(...a) });
+      this._attachStream(cloud);
       return;
     }
+    this._detachStream();
     this.unit = new KumoUnit({
       address: String(this.getSetting('address') || '').trim(),
       password: this.getStoreValue('password'),
       cryptoSerial: this.getStoreValue('cryptoSerial'),
       log: (...a) => this.log(...a),
     });
+  }
+
+  _attachStream(cloud) {
+    this._detachStream();
+    const stream = cloud.getStream();
+    const serial = this.getData().id;
+    this._onStreamUpdate = (s, data) => {
+      if (s !== serial || !(this.unit instanceof KumoCloudUnit)) return;
+      const status = this.unit.applyUpdate(data);
+      if (status) this._applyStatus(status).catch((e) => this.error('live update:', e.message));
+    };
+    this._onStreamConnected = () => this.poll(true).catch(() => {});
+    stream.on('device_update', this._onStreamUpdate);
+    stream.on('connected', this._onStreamConnected);
+    stream.addSerial(serial);
+    this._stream = stream;
+  }
+
+  _detachStream() {
+    if (!this._stream) return;
+    this._stream.off('device_update', this._onStreamUpdate);
+    this._stream.off('connected', this._onStreamConnected);
+    this._stream.removeSerial(this.getData().id);
+    this._stream = null;
   }
 
   _startPolling(seconds) {
@@ -115,9 +144,11 @@ class ComfortDevice extends Homey.Device {
     if (this._kickTimer) this.homey.clearTimeout(this._kickTimer);
     const ms = this._isCloud() ? POST_COMMAND_POLL_CLOUD_MS : POST_COMMAND_POLL_MS;
     this._kickTimer = this.homey.setTimeout(() => {
-      this.poll().catch(() => {});
-      // The cloud can lag the adapter; confirm once more.
-      if (this._isCloud()) this._kickTimer = this.homey.setTimeout(() => this.poll().catch(() => {}), 15000);
+      this.poll(true).catch(() => {});
+      // The cloud can lag the adapter; confirm once more unless live updates are flowing.
+      if (this._isCloud() && !(this._stream && this._stream.connected)) {
+        this._kickTimer = this.homey.setTimeout(() => this.poll(true).catch(() => {}), 15000);
+      }
     }, ms);
   }
 
@@ -161,7 +192,7 @@ class ComfortDevice extends Homey.Device {
   async _ensureCapability(cap, wanted) {
     if (wanted && !this.hasCapability(cap)) {
       await this.addCapability(cap).catch((e) => this.error(e));
-      if (cap === 'kumo_vane') this.registerCapabilityListener('kumo_vane', (v) => this.applyVane(v));
+      if (cap === 'comfort_vane') this.registerCapabilityListener('comfort_vane', (v) => this.applyVane(v));
       if (cap === 'target_temperature.heat') this.registerCapabilityListener(cap, (v) => this._setAutoFromHomey({ heat: v }));
       if (cap === 'target_temperature.cool') this.registerCapabilityListener(cap, (v) => this._setAutoFromHomey({ cool: v }));
     } else if (!wanted && this.hasCapability(cap)) {
@@ -171,8 +202,11 @@ class ComfortDevice extends Homey.Device {
 
   // ── Polling ─────────────────────────────────────────────────────────────
 
-  async poll() {
+  async poll(force = false) {
     if (this._polling) return this._polling;
+    // With live updates connected, the interval poll is only a periodic safety net.
+    if (!force && this._stream && this._stream.connected && this._lastPoll
+        && Date.now() - this._lastPoll < STREAM_SAFETY_POLL_MS) return undefined;
     this._polling = this._doPoll().finally(() => { this._polling = null; });
     return this._polling;
   }
@@ -196,6 +230,7 @@ class ComfortDevice extends Homey.Device {
       throw err;
     }
     this._failures = 0;
+    this._lastPoll = Date.now();
     if (!this.getAvailable()) await this.setAvailable().catch(() => {});
     await this._applyStatus(s);
   }
@@ -206,7 +241,7 @@ class ComfortDevice extends Homey.Device {
       modes: u.supportedModes(), fan: u.supportedFanSpeeds(), vane: u.supportedVaneDirections(),
       min: u.profile.minimumSetPoints, max: u.profile.maximumSetPoints,
     }));
-    await this._ensureCapability('kumo_vane', u.supportedVaneDirections().length > 0);
+    await this._ensureCapability('comfort_vane', u.supportedVaneDirections().length > 0);
     const auto = u.supportedModes().includes('auto');
     await this._ensureCapability('target_temperature.heat', auto);
     await this._ensureCapability('target_temperature.cool', auto);
@@ -231,7 +266,7 @@ class ComfortDevice extends Homey.Device {
     if (mode && mode !== 'off') await this.setStoreValue('lastActiveMode', mode);
 
     await this._set('onoff', mode !== 'off');
-    await this._set('kumo_mode', mode);
+    await this._set('comfort_mode', mode);
     // thermostat_mode only knows off/heat/cool/auto; leave it alone in dry/fan.
     if (THERMOSTAT_MODES.includes(mode)) await this._set('thermostat_mode', mode);
 
@@ -239,10 +274,10 @@ class ComfortDevice extends Homey.Device {
     await this._set('target_temperature', this._displayTarget(s));
     await this._set('target_temperature.heat', this._toHomey(s.spHeat));
     await this._set('target_temperature.cool', this._toHomey(s.spCool));
-    if (s.fanSpeed) await this._set('kumo_fan_speed', s.fanSpeed);
-    if (s.vaneDir) await this._set('kumo_vane', s.vaneDir);
+    if (s.fanSpeed) await this._set('comfort_fan_speed', s.fanSpeed);
+    if (s.vaneDir) await this._set('comfort_vane', s.vaneDir);
     await this._set('alarm_generic', Boolean(s.filterDirty));
-    if (s.wifiRssi != null) await this._set('kumo_rssi', Number(s.wifiRssi));
+    if (s.wifiRssi != null) await this._set('comfort_rssi', Number(s.wifiRssi));
 
     if (s.humidity != null) {
       await this._ensureCapability('measure_humidity', true);
@@ -293,7 +328,7 @@ class ComfortDevice extends Homey.Device {
   async applyMode(mode) {
     await this._command(() => this.unit.setMode(mode));
     // Optimistic UI update; the follow-up poll confirms.
-    await this._set('kumo_mode', mode);
+    await this._set('comfort_mode', mode);
     await this._set('onoff', mode !== 'off');
     if (THERMOSTAT_MODES.includes(mode)) await this._set('thermostat_mode', mode);
     if (mode !== 'off') await this.setStoreValue('lastActiveMode', mode);
@@ -301,12 +336,12 @@ class ComfortDevice extends Homey.Device {
 
   async applyFanSpeed(speed) {
     await this._command(() => this.unit.setFanSpeed(speed));
-    await this._set('kumo_fan_speed', speed);
+    await this._set('comfort_fan_speed', speed);
   }
 
   async applyVane(dir) {
     await this._command(() => this.unit.setVaneDirection(dir));
-    await this._set('kumo_vane', dir);
+    await this._set('comfort_vane', dir);
   }
 
   async _setTargetFromHomey(value) {

@@ -9,7 +9,7 @@
     { "id": "off",  "title": { "en": "Off" } },
     { "id": "heat", "title": { "en": "Heat" } },
     { "id": "cool", "title": { "en": "Cool" } },
-    { "id": "auto", "title": { "en": "Heat/Cool (auto)" } },
+    { "id": "auto", "title": { "en": "Auto heat/cool" } },
     { "id": "dry",  "title": { "en": "Dry" } },
     { "id": "vent", "title": { "en": "Fan only" } }
   ]

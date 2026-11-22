@@ -4,24 +4,24 @@
   "capabilities": [
     "onoff",
     "thermostat_mode",
-    "kumo_mode",
+    "comfort_mode",
     "target_temperature",
     "measure_temperature",
-    "kumo_fan_speed",
-    "kumo_vane",
+    "comfort_fan_speed",
+    "comfort_vane",
     "target_temperature.heat",
     "target_temperature.cool",
     "alarm_generic",
-    "kumo_rssi"
+    "comfort_rssi"
   ],
   "capabilitiesOptions": {
     "target_temperature": { "min": 10, "max": 31, "step": 0.5 },
     "target_temperature.heat": {
-      "title": { "en": "Heat to (auto mode)" },
+      "title": { "en": "Auto heat setpoint" },
       "min": 10, "max": 31, "step": 0.5
     },
     "target_temperature.cool": {
-      "title": { "en": "Cool to (auto mode)" },
+      "title": { "en": "Auto cool setpoint" },
       "min": 10, "max": 31, "step": 0.5
     },
     "alarm_generic": {

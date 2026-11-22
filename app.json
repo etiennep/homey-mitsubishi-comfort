@@ -11,7 +11,7 @@
     "en": "Mitsubishi Comfort"
   },
   "description": {
-    "en": "Control Mitsubishi mini-splits with a Comfort (formerly Kumo Cloud) Wi-Fi adapter, via the Mitsubishi Comfort cloud or a local key."
+    "en": "Heat, cool and quiet comfort, right from your Flows."
   },
   "category": [
     "climate"
@@ -30,10 +30,37 @@
     "lan",
     "cloud"
   ],
+  "tags": {
+    "en": [
+      "mitsubishi",
+      "comfort",
+      "kumo",
+      "mini-split",
+      "heat pump",
+      "air conditioner",
+      "ductless",
+      "thermostat"
+    ]
+  },
+  "source": "https://github.com/etiennep/homey-mitsubishi-comfort",
+  "bugs": {
+    "url": "https://github.com/etiennep/homey-mitsubishi-comfort/issues"
+  },
+  "support": "https://github.com/etiennep/homey-mitsubishi-comfort/issues",
+  "contributors": {
+    "developers": [
+      {
+        "name": "dlarrick — pykumo (protocol, MIT)"
+      },
+      {
+        "name": "Nikolai Rahimi — mitsubishi-comfort (protocol, MIT)"
+      }
+    ]
+  },
   "flow": {
     "triggers": [
       {
-        "id": "kumo_mode_changed",
+        "id": "mode_changed",
         "title": {
           "en": "Mode changed"
         },
@@ -56,7 +83,7 @@
         ]
       },
       {
-        "id": "kumo_fan_speed_changed",
+        "id": "fan_speed_changed",
         "title": {
           "en": "Fan speed changed"
         },
@@ -81,7 +108,7 @@
     ],
     "conditions": [
       {
-        "id": "kumo_mode_is",
+        "id": "mode_is",
         "title": {
           "en": "Mode !{{is|isn't}}"
         },
@@ -119,7 +146,7 @@
               {
                 "id": "auto",
                 "label": {
-                  "en": "Heat/Cool (auto)"
+                  "en": "Auto heat/cool"
                 }
               },
               {
@@ -139,7 +166,7 @@
         ]
       },
       {
-        "id": "kumo_is_running",
+        "id": "is_running",
         "title": {
           "en": "!{{Is|Isn't}} heating or cooling"
         },
@@ -157,7 +184,7 @@
     ],
     "actions": [
       {
-        "id": "set_kumo_mode",
+        "id": "set_mode",
         "title": {
           "en": "Set mode"
         },
@@ -195,7 +222,7 @@
               {
                 "id": "auto",
                 "label": {
-                  "en": "Heat/Cool (auto)"
+                  "en": "Auto heat/cool"
                 }
               },
               {
@@ -392,7 +419,7 @@
       {
         "id": "set_auto_setpoints",
         "title": {
-          "en": "Set heat/cool (auto) setpoints"
+          "en": "Set auto heat and cool setpoints"
         },
         "titleFormatted": {
           "en": "Heat to [[heat]]° and cool to [[cool]]°"
@@ -439,15 +466,15 @@
       "capabilities": [
         "onoff",
         "thermostat_mode",
-        "kumo_mode",
+        "comfort_mode",
         "target_temperature",
         "measure_temperature",
-        "kumo_fan_speed",
-        "kumo_vane",
+        "comfort_fan_speed",
+        "comfort_vane",
         "target_temperature.heat",
         "target_temperature.cool",
         "alarm_generic",
-        "kumo_rssi"
+        "comfort_rssi"
       ],
       "capabilitiesOptions": {
         "target_temperature": {
@@ -457,7 +484,7 @@
         },
         "target_temperature.heat": {
           "title": {
-            "en": "Heat to (auto mode)"
+            "en": "Auto heat setpoint"
           },
           "min": 10,
           "max": 31,
@@ -465,7 +492,7 @@
         },
         "target_temperature.cool": {
           "title": {
-            "en": "Cool to (auto mode)"
+            "en": "Auto cool setpoint"
           },
           "min": 10,
           "max": 31,
@@ -618,7 +645,7 @@
     }
   ],
   "capabilities": {
-    "kumo_fan_speed": {
+    "comfort_fan_speed": {
       "type": "enum",
       "title": {
         "en": "Fan speed"
@@ -666,7 +693,7 @@
         }
       ]
     },
-    "kumo_mode": {
+    "comfort_mode": {
       "type": "enum",
       "title": {
         "en": "Mode"
@@ -697,7 +724,7 @@
         {
           "id": "auto",
           "title": {
-            "en": "Heat/Cool (auto)"
+            "en": "Auto heat/cool"
           }
         },
         {
@@ -714,7 +741,7 @@
         }
       ]
     },
-    "kumo_rssi": {
+    "comfort_rssi": {
       "type": "number",
       "title": {
         "en": "Wi-Fi signal"
@@ -729,7 +756,7 @@
       "uiComponent": "sensor",
       "icon": "/assets/wifi.svg"
     },
-    "kumo_vane": {
+    "comfort_vane": {
       "type": "enum",
       "title": {
         "en": "Vane direction"

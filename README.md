@@ -6,20 +6,24 @@ This app controls Mitsubishi mini-splits that have a Mitsubishi Comfort (formerl
 
 The protocol is ported from [pykumo](https://github.com/dlarrick/pykumo) (MIT) and `mitsubishi-comfort`.
 
+## Live updates
+
+In cloud mode the app keeps one Socket.IO connection per Comfort account open to Mitsubishi's push service, so changes made with the remote or the Comfort app reach Homey within seconds. While that stream is healthy the app polls only every 5 minutes, as a safety net. If the stream drops, it reconnects with backoff and falls back to the poll interval set on the device (60 s minimum).
+
 ## What you get
 
 | Homey capability | Unit field | Notes |
 |---|---|---|
 | `onoff` | mode | Off sends `off`. On restores the last active mode. |
 | `thermostat_mode` | mode | Off / heat / cool / auto. Works with voice and Google/Alexa. |
-| `kumo_mode` (picker) | mode | Every mode, including **Dry** and **Fan only**. |
+| `comfort_mode` (picker) | mode | Every mode, including **Dry** and **Fan only**. |
 | `target_temperature` | spHeat / spCool | Heat uses spHeat. Cool/Dry use spCool. In Auto it moves both setpoints and keeps the gap between them. |
 | `target_temperature.heat` / `.cool` | spHeat / spCool | Only added if the unit supports Auto. |
 | `measure_temperature` | roomTemp | |
 | `measure_humidity` | sensor / MHK2 | Only added if the unit reports a humidity value. |
-| `kumo_fan_speed`, `kumo_vane` | fanSpeed, vaneDir | The vane control is removed if the unit doesn't report one (some cassettes don't). |
+| `comfort_fan_speed`, `comfort_vane` | fanSpeed, vaneDir | The vane control is removed if the unit doesn't report one (some cassettes don't). |
 | `alarm_generic` | filterDirty | Labelled "Filter needs cleaning". |
-| `kumo_rssi` | adapter Wi-Fi RSSI | Logged to Insights. |
+| `comfort_rssi` | adapter Wi-Fi RSSI | Logged to Insights. |
 
 **Fahrenheit:** when Homey is set to imperial units, setpoints use the Comfort app's own whole-degree °F ↔ °C table. Setting 70 °F in Homey shows 70 °F in the Comfort app, and the reverse. You can force this per device with Settings → *Setpoint rounding*.
 
@@ -32,6 +36,7 @@ Cloud mode:
 ```bash
 node tools/kumo-test.js cloud-status you@example.com
 node tools/kumo-test.js cloud-set you@example.com fanSpeed quiet
+node tools/kumo-test.js cloud-watch you@example.com   # live updates as they arrive
 ```
 
 Local mode (needs a local key):

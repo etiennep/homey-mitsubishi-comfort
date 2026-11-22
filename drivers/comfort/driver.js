@@ -9,19 +9,19 @@ class ComfortDriver extends Homey.Driver {
   async onInit() {
     const card = (id) => this.homey.flow.getActionCard(id);
 
-    card('set_kumo_mode').registerRunListener(({ device, mode }) => device.applyMode(mode));
+    card('set_mode').registerRunListener(({ device, mode }) => device.applyMode(mode));
     card('set_fan_speed').registerRunListener(({ device, fan_speed }) => device.applyFanSpeed(fan_speed));
     card('set_vane').registerRunListener(({ device, vane }) => device.applyVane(vane));
     card('set_mode_and_temperature').registerRunListener(({ device, mode, temperature }) => device.applyModeAndTemperature(mode, temperature));
     card('set_auto_setpoints').registerRunListener(({ device, heat, cool }) => device.applyAutoSetpoints(heat, cool));
 
-    this.homey.flow.getConditionCard('kumo_mode_is')
-      .registerRunListener(({ device, mode }) => device.getCapabilityValue('kumo_mode') === mode);
-    this.homey.flow.getConditionCard('kumo_is_running')
-      .registerRunListener(({ device }) => RUNNING_MODES.includes(device.getCapabilityValue('kumo_mode')));
+    this.homey.flow.getConditionCard('mode_is')
+      .registerRunListener(({ device, mode }) => device.getCapabilityValue('comfort_mode') === mode);
+    this.homey.flow.getConditionCard('is_running')
+      .registerRunListener(({ device }) => RUNNING_MODES.includes(device.getCapabilityValue('comfort_mode')));
 
-    this.modeChangedTrigger = this.homey.flow.getDeviceTriggerCard('kumo_mode_changed');
-    this.fanChangedTrigger = this.homey.flow.getDeviceTriggerCard('kumo_fan_speed_changed');
+    this.modeChangedTrigger = this.homey.flow.getDeviceTriggerCard('mode_changed');
+    this.fanChangedTrigger = this.homey.flow.getDeviceTriggerCard('fan_speed_changed');
   }
 
   _registerCommonHandlers(session) {

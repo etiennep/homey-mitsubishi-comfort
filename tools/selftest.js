@@ -138,8 +138,8 @@ const near = (a, b, msg) => assert.ok(Math.abs(a - b) < 0.02, `${msg}: ${a} != $
 
   // ── Device logic ──
   const Device = require('../drivers/comfort/device');
-  const caps = ['onoff', 'thermostat_mode', 'kumo_mode', 'target_temperature', 'measure_temperature', 'kumo_fan_speed',
-    'kumo_vane', 'target_temperature.heat', 'target_temperature.cool', 'alarm_generic', 'kumo_rssi'];
+  const caps = ['onoff', 'thermostat_mode', 'comfort_mode', 'target_temperature', 'measure_temperature', 'comfort_fan_speed',
+    'comfort_vane', 'target_temperature.heat', 'target_temperature.cool', 'alarm_generic', 'comfort_rssi'];
   state.mode = 'heat';
   state.spHeat = 21.5; // 70 °F in the Comfort app
   const dev = new Device();
@@ -148,7 +148,7 @@ const near = (a, b, msg) => assert.ok(Math.abs(a - b) < 0.02, `${msg}: ${a} != $
   dev._store = { password: PW, cryptoSerial: CS };
   await dev.onInit();
   await dev.poll();
-  assert.strictEqual(dev._caps.kumo_mode, 'heat');
+  assert.strictEqual(dev._caps.comfort_mode, 'heat');
   assert.strictEqual(dev._caps.onoff, true);
   near(dev._caps.target_temperature, (70 - 32) / 1.8, 'heat setpoint shows as exactly 70°F');
   assert.strictEqual(dev._settings.firmware, '02.06.26');
@@ -168,10 +168,10 @@ const near = (a, b, msg) => assert.ok(Math.abs(a - b) < 0.02, `${msg}: ${a} != $
   await dev._listeners.onoff(true);
   assert.strictEqual(state.mode, 'heat');
 
-  // Dry mode: thermostat_mode untouched, kumo_mode=dry, target maps to spCool
-  await dev._listeners.kumo_mode('dry');
+  // Dry mode: thermostat_mode untouched, comfort_mode=dry, target maps to spCool
+  await dev._listeners.comfort_mode('dry');
   await dev.poll();
-  assert.strictEqual(dev._caps.kumo_mode, 'dry');
+  assert.strictEqual(dev._caps.comfort_mode, 'dry');
   assert.strictEqual(dev._caps.thermostat_mode, 'heat');
   await dev._listeners.target_temperature((76 - 32) / 1.8);
   assert.strictEqual(state.spCool, 24.5);
@@ -244,10 +244,54 @@ const near = (a, b, msg) => assert.ok(Math.abs(a - b) < 0.02, `${msg}: ${a} != $
   await new Promise((r) => cloudSrv.listen(0, '127.0.0.1', r));
   const baseUrl = `http://127.0.0.1:${cloudSrv.address().port}`;
 
+  // Fake Engine.IO v4 polling server
+  const sio = { queue: [], waiting: null, posts: [], pongs: 0, handshakes: 0 };
+  const flush = () => {
+    if (sio.waiting && sio.queue.length) {
+      const res = sio.waiting; sio.waiting = null;
+      res.end(sio.queue.splice(0).join('\x1e'));
+    }
+  };
+  sio.push = (pkt) => { sio.queue.push(pkt); flush(); };
+  const sioSrv = http.createServer((req, res) => {
+    const u = new URL(req.url, 'http://x');
+    if (req.headers.authorization !== `Bearer a${tokenN}`) { res.statusCode = 401; return res.end(); }
+    if (!u.searchParams.get('sid')) {
+      sio.handshakes++;
+      return res.end('0' + JSON.stringify({ sid: 'S1', pingInterval: 300, pingTimeout: 200, upgrades: [] }));
+    }
+    if (req.method === 'POST') {
+      const chunks = [];
+      req.on('data', (c) => chunks.push(c));
+      req.on('end', () => {
+        for (const pkt of Buffer.concat(chunks).toString().split('\x1e')) {
+          sio.posts.push(pkt);
+          if (pkt === '40') sio.push('40{"sid":"N1"}');
+          if (pkt === '3') sio.pongs++;
+        }
+        res.end('ok');
+      });
+      return undefined;
+    }
+    sio.waiting = res;
+    flush();
+    setTimeout(() => { if (sio.waiting === res) { sio.waiting = null; res.end('2'); } }, 300);
+    return undefined;
+  });
+  await new Promise((r) => sioSrv.listen(0, '127.0.0.1', r));
+  const socketUrl = `http://127.0.0.1:${sioSrv.address().port}`;
+  const waitFor = async (fn, ms = 3000) => {
+    const t0 = Date.now();
+    while (!fn()) {
+      if (Date.now() - t0 > ms) throw new Error('timeout waiting for condition');
+      await new Promise((r) => setTimeout(r, 20));
+    }
+  };
+
   const badCloud = new kumo.KumoCloud('me@x', 'nope', { baseUrl });
   await assert.rejects(badCloud.login(), kumo.KumoAuthError);
 
-  const cloud = new kumo.KumoCloud('me@x', 'pw', { baseUrl });
+  const cloud = new kumo.KumoCloud('me@x', 'pw', { baseUrl, socketUrl });
   const found = await cloud.discoverUnits({ socket: false });
   assert.strictEqual(found[0].serial, 'SER1');
   assert.strictEqual(found[0].complete, false);
@@ -282,13 +326,37 @@ const near = (a, b, msg) => assert.ok(Math.abs(a - b) < 0.02, `${msg}: ${a} != $
   assert.strictEqual(cloudState.power, 1);
   await cdev._listeners.target_temperature((70 - 32) / 1.8);
   assert.strictEqual(cloudState.spHeat, 21.5);
-  await cdev._listeners.kumo_fan_speed('quiet');
+  await cdev._listeners.comfort_fan_speed('quiet');
   assert.strictEqual(cloudState.fanSpeed, 'quiet');
   await cdev.poll();
   assert.strictEqual(cdev._caps.measure_humidity, 41);
   assert.strictEqual(cdev._settings.firmware, '02.06.26');
   console.log('✓ cloud device: on/off, °F setpoint, fan, humidity');
+
+  // Live updates: device subscribes, answers pings, applies pushed device_update
+  await waitFor(() => cloud.getStream().connected);
+  assert.ok(sio.posts.includes('42["subscribe","SER1"]'), 'subscribed to unit');
+  await waitFor(() => sio.pongs > 0, 2000);
+  sio.push('42["device_update",{"deviceSerial":"SER1","roomTemp":23.5,"fanSpeed":"powerful"}]');
+  await waitFor(() => cdev._caps.comfort_fan_speed === 'powerful');
+  assert.strictEqual(cdev._caps.measure_temperature, 23.5);
+  sio.push('42["device_update",{"deviceSerial":"OTHER","fanSpeed":"low"}]');
+  await new Promise((r) => setTimeout(r, 100));
+  assert.strictEqual(cdev._caps.comfort_fan_speed, 'powerful', 'ignores other units');
+  // interval poll is skipped while the stream is healthy
+  const before = cdev._lastPoll;
+  await cdev.poll();
+  assert.strictEqual(cdev._lastPoll, before);
+  // server drops the session → stream reconnects
+  const hs = sio.handshakes;
+  sio.push('1');
+  cloud.getStream()._backoff = 50;
+  await waitFor(() => sio.handshakes > hs && cloud.getStream().connected, 8000);
+  cdev.onDeleted();
+  assert.strictEqual(cloud.getStream()._running, false);
+  console.log('✓ live updates: subscribe, ping/pong, device_update, reconnect');
   cloudSrv.close();
+  sioSrv.close();
 
   server.close();
   console.log('\nAll self-tests passed.');

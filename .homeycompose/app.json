@@ -3,10 +3,18 @@
   "version": "0.1.0",
   "compatibility": ">=12.0.0",
   "sdk": 3,
-  "platforms": ["local"],
-  "name": { "en": "Mitsubishi Comfort" },
-  "description": { "en": "Control Mitsubishi mini-splits with a Comfort (formerly Kumo Cloud) Wi-Fi adapter, via the Mitsubishi Comfort cloud or a local key." },
-  "category": ["climate"],
+  "platforms": [
+    "local"
+  ],
+  "name": {
+    "en": "Mitsubishi Comfort"
+  },
+  "description": {
+    "en": "Heat, cool and quiet comfort, right from your Flows."
+  },
+  "category": [
+    "climate"
+  ],
   "permissions": [],
   "brandColor": "#C8102E",
   "images": {
@@ -14,6 +22,38 @@
     "large": "/assets/images/large.png",
     "xlarge": "/assets/images/xlarge.png"
   },
-  "author": { "name": "Etienne" },
-  "connectivity": ["lan", "cloud"]
+  "author": {
+    "name": "Etienne"
+  },
+  "connectivity": [
+    "lan",
+    "cloud"
+  ],
+  "tags": {
+    "en": [
+      "mitsubishi",
+      "comfort",
+      "kumo",
+      "mini-split",
+      "heat pump",
+      "air conditioner",
+      "ductless",
+      "thermostat"
+    ]
+  },
+  "source": "https://github.com/etiennep/homey-mitsubishi-comfort",
+  "bugs": {
+    "url": "https://github.com/etiennep/homey-mitsubishi-comfort/issues"
+  },
+  "support": "https://github.com/etiennep/homey-mitsubishi-comfort/issues",
+  "contributors": {
+    "developers": [
+      {
+        "name": "dlarrick — pykumo (protocol, MIT)"
+      },
+      {
+        "name": "Nikolai Rahimi — mitsubishi-comfort (protocol, MIT)"
+      }
+    ]
+  }
 }

@@ -1,3 +1,4 @@
-tools/kumo-creds.json
+tools/
+publish-to-github.sh
 kumo-creds.json
 README.md

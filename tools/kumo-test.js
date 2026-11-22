@@ -25,6 +25,7 @@
  *   node tools/kumo-test.js cloud-set you@example.com fanSpeed quiet
  *   node tools/kumo-test.js cloud-set you@example.com spHeat 21.5
  *   node tools/kumo-test.js cloud-set you@example.com mode heat
+ *   node tools/kumo-test.js cloud-watch you@example.com      # live updates; change something in the Comfort app
  *
  * kumo-creds.json holds the unit's local password — keep it private.
  */
@@ -85,7 +86,7 @@ async function main() {
     return;
   }
 
-  if (cmd === 'cloud-status' || cmd === 'cloud-set' || cmd === 'cloud-profile') {
+  if (cmd === 'cloud-status' || cmd === 'cloud-set' || cmd === 'cloud-profile' || cmd === 'cloud-watch') {
     const user = args[0];
     if (!user) throw new Error(`usage: ${cmd} <email> ...`);
     const pass = process.env.KUMO_PASSWORD || (await askHidden('Comfort app password: '));
@@ -103,6 +104,18 @@ async function main() {
     }
     if (!serial) throw new Error('No indoor unit found');
     const unit = new KumoCloudUnit({ cloud, serial, log: console.log });
+    if (cmd === 'cloud-watch') {
+      const stream = cloud.getStream();
+      stream.on('connected', () => console.log(`[${new Date().toLocaleTimeString()}] connected — change something in the Comfort app or on the remote (Ctrl-C to stop)`));
+      stream.on('disconnected', () => console.log(`[${new Date().toLocaleTimeString()}] disconnected (will reconnect)`));
+      stream.on('device_update', (s, data) => {
+        const keys = ['power', 'operationMode', 'spHeat', 'spCool', 'roomTemp', 'fanSpeed', 'airDirection', 'humidity'];
+        const shown = Object.fromEntries(keys.filter((k) => k in data).map((k) => [k, data[k]]));
+        console.log(`[${new Date().toLocaleTimeString()}] ${s}`, JSON.stringify(shown));
+      });
+      stream.addSerial(serial);
+      await new Promise(() => {});
+    }
     if (cmd === 'cloud-profile') {
       console.log(JSON.stringify(await unit.getProfile(true), null, 2));
       return;
@@ -157,7 +170,7 @@ async function main() {
     return;
   }
 
-  console.log(fs.readFileSync(__filename, 'utf8').split('\n').slice(3, 29).join('\n'));
+  console.log(fs.readFileSync(__filename, 'utf8').split('\n').slice(3, 30).join('\n'));
 }
 
 main().catch((err) => {
