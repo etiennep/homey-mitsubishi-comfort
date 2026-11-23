@@ -2,7 +2,10 @@
 
 > **Nov 2026 status:** Mitsubishi's cloud stopped returning the adapter's local key (password/cryptoSerial) around 2026-07-31, for every client including Home Assistant. New pairings therefore use **cloud mode**: Homey calls the same Mitsubishi Comfort V3 web API the phone app uses (login → `GET /v3/devices/{serial}` → `POST /v3/devices/send-command`). Local mode still works if you have a saved key (e.g. an old `kumo_cache.json`); enter it on the *Enter keys manually* tab.
 
-This app controls Mitsubishi mini-splits that have a Mitsubishi Comfort (formerly Kumo Cloud) Wi-Fi adapter (PAC-USWHS002-WF-x). It runs on your LAN from Homey Pro or Homey Self-Hosted Server. It works the same way as Home Assistant's `mitsubishi_comfort` integration: your Comfort app login is used **once**, at pairing, to fetch the unit's local key. After that, every command goes straight to the adapter over HTTP. The cloud isn't used.
+This app controls Mitsubishi mini-splits that have a Mitsubishi Comfort (formerly Kumo Cloud) Wi-Fi adapter (PAC-USWHS002-WF-x). It runs on Homey Pro or Homey Self-Hosted Server and supports two connection modes:
+
+- **Cloud mode** (default for new pairings): commands go through Mitsubishi's Comfort V3 web API, the same service the phone app uses. Live push updates keep Homey in sync within seconds.
+- **Local mode**: commands go directly to the adapter over HTTP on your LAN — no cloud involved. Requires a local key (`password` + `cryptoSerial`) that is no longer vended by Mitsubishi's cloud; use this mode if you have a key saved from an old `kumo_cache.json` or a previous pairing.
 
 The protocol is ported from [pykumo](https://github.com/dlarrick/pykumo) (MIT) and `mitsubishi-comfort`.
 
